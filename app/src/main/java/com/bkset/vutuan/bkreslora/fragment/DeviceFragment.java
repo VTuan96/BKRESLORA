@@ -2,6 +2,7 @@ package com.bkset.vutuan.bkreslora.fragment;
 
 
 
+import android.app.ProgressDialog;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
@@ -12,8 +13,11 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import com.bkset.vutuan.bkreslora.adapter.CustomGraphAdapter;
 import com.github.mikephil.charting.data.Entry;
 import com.bkset.vutuan.bkreslora.R;
 import com.bkset.vutuan.bkreslora.activity.BieuDoActivity;
@@ -41,9 +45,10 @@ public class DeviceFragment extends Fragment {
 
     private TextView txtItemContent, txt_Time;
     private TextView txtTitle;
-    private RecyclerView rvItemBieuDoThongKe;
+    private ListView rvItemBieuDoThongKe;
     private ArrayList<Graph> listGraph=new ArrayList<>();
-    private GraphAdapter adapter;
+//    private GraphAdapter adapter;
+    private CustomGraphAdapter adapter;
 
     private DownloadJSON downloadJSON;
     String arr_thongso[] = {"PH", "Muối", "Oxy", "Nhiệt độ", "H2S", "NH3", "NH4 Min", "NH4 Max", "N02 Min", "NO2 Max", "Sulfide Min", "Sulfide Max"};
@@ -53,8 +58,51 @@ public class DeviceFragment extends Fragment {
 
     private Calendar calendar;
     private int year, month, day;
+    ProgressDialog pDialog;
 
     private View v;
+
+    //All components of all graphs
+    private ArrayList<Entry> entriesPH=new ArrayList<>();
+    private ArrayList labelsPH = new ArrayList<String>();
+
+    private ArrayList<Entry> entriesSalt=new ArrayList<>();
+    private ArrayList labelsSalt = new ArrayList<String>();
+
+    private ArrayList<Entry> entriesOxy=new ArrayList<>();
+    private ArrayList labelsOxy = new ArrayList<String>();
+
+    private ArrayList<Entry> entriesTemp=new ArrayList<>();
+    private ArrayList labelsTemp = new ArrayList<String>();
+
+
+    private ArrayList<Entry> entriesH2S=new ArrayList<>();
+    private ArrayList labelsH2S = new ArrayList<String>();
+
+    private ArrayList<Entry> entriesNH3=new ArrayList<>();
+    private ArrayList labelsNH3 = new ArrayList<String>();
+
+    private ArrayList<Entry> entriesNH4Min=new ArrayList<>();
+    private ArrayList labelsNH4Min = new ArrayList<String>();
+
+    private ArrayList<Entry> entriesNH4Max=new ArrayList<>();
+    private ArrayList labelsNH4Max = new ArrayList<String>();
+
+    private ArrayList<Entry> entriesNO2Min=new ArrayList<>();
+    private ArrayList labelsNO2Min = new ArrayList<String>();
+
+    private ArrayList<Entry> entriesNO2Max=new ArrayList<>();
+    private ArrayList labelsNO2Max = new ArrayList<String>();
+
+    private ArrayList<Entry> entriesH2SMax=new ArrayList<>();
+    private ArrayList labelsH2SMax = new ArrayList<String>();
+
+    private ArrayList<Entry> entriesH2SMin=new ArrayList<>();
+    private ArrayList labelsH2SMin = new ArrayList<String>();
+
+    //All label of graph
+    private String[] arrLabels=new String[]{"PH","Salt","Oxy", "Temp", "H2S","NH3","NH4 Max","NH4 Min",
+            "NO2 Max","NO2 Min","H2S Max","H2S Min" };
 
     public static DeviceFragment newInstance(String title, int selectDeviceID){
         DeviceFragment df=new DeviceFragment();
@@ -83,15 +131,20 @@ public class DeviceFragment extends Fragment {
         String title=bundle.getString(TITLE);
         tmpSelectedDeviceId= String.valueOf(bundle.getInt(DEVICEID));
 
+        pDialog = new ProgressDialog(getContext());
+
         txtTitle.setText("Thiết bị: "+title);
         txt_Time.setText("Ngày: "+ BieuDoActivity.selectedDateTime);
-        rvItemBieuDoThongKe.setHasFixedSize(true);
-        LinearLayoutManager manager=new LinearLayoutManager(getContext());
-        rvItemBieuDoThongKe.setLayoutManager(manager);
+//        rvItemBieuDoThongKe.setHasFixedSize(true);
+//        LinearLayoutManager manager=new LinearLayoutManager(getContext());
+//        rvItemBieuDoThongKe.setLayoutManager(manager);
 
-        listGraph=new ArrayList<>();
-        adapter=new GraphAdapter(listGraph);
-        rvItemBieuDoThongKe.setAdapter(adapter);
+//        listGraph=new ArrayList<>();
+////        adapter=new GraphAdapter(listGraph);
+//        adapter = new CustomGraphAdapter(getContext(), listGraph);
+//        rvItemBieuDoThongKe.setAdapter(adapter);
+
+        initGraph();
 
         //lay du lieu bieu do cua 12 thong so
         for (int i=1;i<=12;i++){
@@ -111,8 +164,70 @@ public class DeviceFragment extends Fragment {
     private void initWidgets(View v){
         txtItemContent= (TextView) v.findViewById(R.id.txtItemContent);
         txtTitle= (TextView) v.findViewById(R.id.txtTitle);
-        rvItemBieuDoThongKe= (RecyclerView) v.findViewById(R.id.rvItemBieuDoThongKe);
+        rvItemBieuDoThongKe= (ListView) v.findViewById(R.id.rvItemBieuDoThongKe);
         txt_Time = (TextView) v.findViewById(R.id.txt_time);
+    }
+
+    public void initGraph(){
+        entriesPH=new ArrayList<>();
+        labelsPH = new ArrayList<String>();
+
+        entriesSalt=new ArrayList<>();
+        labelsSalt = new ArrayList<String>();
+
+        entriesOxy=new ArrayList<>();
+        labelsOxy = new ArrayList<String>();
+
+        entriesTemp=new ArrayList<>();
+        labelsTemp = new ArrayList<String>();
+
+
+        entriesH2S=new ArrayList<>();
+        labelsH2S = new ArrayList<String>();
+
+        entriesNH3=new ArrayList<>();
+        labelsNH3 = new ArrayList<String>();
+
+        entriesNH4Min=new ArrayList<>();
+        labelsNH4Min = new ArrayList<String>();
+
+        entriesNH4Max=new ArrayList<>();
+        labelsNH4Max = new ArrayList<String>();
+
+        entriesNO2Min=new ArrayList<>();
+        labelsNO2Min = new ArrayList<String>();
+
+        entriesNO2Max=new ArrayList<>();
+        labelsNO2Max = new ArrayList<String>();
+
+        entriesH2SMax=new ArrayList<>();
+        labelsH2SMax = new ArrayList<String>();
+
+        entriesH2SMin=new ArrayList<>();
+        labelsH2SMin = new ArrayList<String>();
+
+        listGraph=new ArrayList<>();
+        Graph gPH=new Graph(arrLabels[0],entriesPH,labelsPH);
+        Graph gSalt=new Graph(arrLabels[1],entriesSalt,labelsSalt);
+        Graph gOxy=new Graph(arrLabels[2],entriesOxy,labelsOxy);
+        Graph gTemp=new Graph(arrLabels[3],entriesTemp,labelsTemp);
+        Graph gH2S=new Graph(arrLabels[4],entriesH2S,labelsH2S);
+        Graph gNH3=new Graph(arrLabels[5],entriesNH3,labelsNH3);
+        Graph gNH4Max=new Graph(arrLabels[6],entriesNH4Max,labelsNH4Max);
+        Graph gNH4Min=new Graph(arrLabels[7],entriesNH4Min,labelsNH4Min);
+        Graph gNO2Max=new Graph(arrLabels[8],entriesNO2Min,labelsNO2Max);
+        Graph gNO2Min=new Graph(arrLabels[9],entriesNO2Min,labelsNO2Min);
+        Graph gH2SMax=new Graph(arrLabels[10],entriesH2SMax,labelsH2SMax);
+        Graph gH2SMin=new Graph(arrLabels[11],entriesH2SMin,labelsH2SMin);
+        Graph [] arrGraph=new Graph[]{gPH,gSalt,gTemp, gH2S,gH2SMax,gH2SMin,gNH3,gNH4Max,gNH4Min,gNO2Max,gNO2Min,gOxy};
+        for (Graph g:arrGraph){
+            listGraph.add(g);
+        }
+
+
+        adapter = new CustomGraphAdapter(getContext(), listGraph);
+        rvItemBieuDoThongKe.setAdapter(adapter);
+        adapter.notifyDataSetChanged();
     }
 
     //lay du lieu ung voi tung thong so
@@ -150,22 +265,21 @@ public class DeviceFragment extends Fragment {
                             labels.add(words[1]);
                         }
                         Graph graph=new Graph(nameGraph,entries,labels);
-                        System.out.println("grap size: "+ listGraph.size());
-                        if (listGraph.size()<12){
-                            listGraph.add(graph);
-                            adapter.notifyDataSetChanged();
-                            Log.i("size graph",listGraph.size()+"");
-                            if (listGraph.size()>0){
-                                txtItemContent.setVisibility(View.GONE);
-//                                Log.i("size graph",listGraph.size()+"");
-                            } else if (listGraph.size()==12){
-                                adapter.notifyDataSetChanged();
-                            } else
-                                txtItemContent.setVisibility(View.VISIBLE);
 
+                        Log.i("size graph", listGraph.size() + "");
+                        if (listGraph.size() > 0) {
+                            txtItemContent.setVisibility(View.GONE);
                         }
 
+                        int index = -1;
 
+                        for (int k = 0; k < arr_thongso.length; k++) {
+                            if (nameGraph == arr_thongso[k]) {
+                                index = k;
+                            }
+                        }
+                        listGraph.set(index, graph);
+                        adapter.notifyDataSetChanged();
                     }
                 } catch (JSONException e) {
                     e.printStackTrace();
